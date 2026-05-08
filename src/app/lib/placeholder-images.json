@@ -1,0 +1,28 @@
+{
+  "placeholderImages": [
+    {
+      "id": "hero-image",
+      "description": "Modern, bright office meeting space with contemporary design and professional furniture.",
+      "imageUrl": "https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&q=80&w=1080",
+      "imageHint": "meeting space"
+    },
+    {
+      "id": "discovery-hub",
+      "description": "Modern ergonomic black office chairs lined up at a white conference table, showing a sleek corporate meeting environment.",
+      "imageUrl": "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&q=80&w=1080",
+      "imageHint": "office chairs"
+    },
+    {
+      "id": "meeting-room-1",
+      "description": "Collaborative workspace with whiteboards and bright lighting.",
+      "imageUrl": "https://images.unsplash.com/photo-1606836591695-4d58a73eba1e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxtZWV0aW5nJTIwcm9vbXxlbnwwfHx8fDE3NzIxNzM0ODl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "meeting room"
+    },
+    {
+      "id": "meeting-room-2",
+      "description": "Private executive suite with premium furniture.",
+      "imageUrl": "https://images.unsplash.com/photo-1631247022917-53f9af27d719?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxleGVjdXRpdmUlMjBvZmZpY2V8ZW58MHx8fHwxNzcyMTczNDg5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "executive office"
+    }
+  ]
+}

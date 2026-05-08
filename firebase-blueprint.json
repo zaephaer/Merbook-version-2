@@ -1,0 +1,189 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user within the MERBOOK system, storing their basic profile information and administrative status. Authentication is handled by an external system (Google).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity. This ID links to the external authentication system's user identifier."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address, typically obtained from the external authentication provider (Google).",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full display name, typically obtained from the external authentication provider (Google)."
+        },
+        "isAdmin": {
+          "type": "boolean",
+          "description": "A flag indicating whether the user has administrative privileges within MERBOOK. Admins can manage rooms and any bookings."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "name",
+        "isAdmin"
+      ]
+    },
+    "MeetingRoom": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MeetingRoom",
+      "type": "object",
+      "description": "Represents a physical meeting room available for booking within the MERBOOK system. Managed by administrators.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the MeetingRoom entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The recognizable name of the meeting room (e.g., 'Conference Room Alpha', 'Huddle Room 3B')."
+        },
+        "capacity": {
+          "type": "number",
+          "description": "The maximum number of occupants the meeting room can comfortably accommodate."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the meeting room, including amenities (e.g., 'Equipped with a projector and video conferencing')."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "A flag indicating whether the meeting room is currently available for booking. Deactivating a room prevents new bookings."
+        },
+        "location": {
+          "type": "string",
+          "description": "Physical location of the meeting room (e.g., 'Floor 5, West Wing')."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "capacity",
+        "isActive"
+      ]
+    },
+    "Booking": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Booking",
+      "type": "object",
+      "description": "Represents a reservation for a specific meeting room by a user for a defined time slot.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Booking entity."
+        },
+        "meetingRoomId": {
+          "type": "string",
+          "description": "Reference to the MeetingRoom entity that has been booked. (Relationship: MeetingRoom 1:N Booking)"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile entity who made the booking. (Relationship: UserProfile 1:N Booking)"
+        },
+        "startTime": {
+          "type": "string",
+          "description": "The date and time when the booking for the meeting room begins.",
+          "format": "date-time"
+        },
+        "endTime": {
+          "type": "string",
+          "description": "The date and time when the booking for the meeting room ends.",
+          "format": "date-time"
+        },
+        "title": {
+          "type": "string",
+          "description": "A concise title or subject for the meeting/booking."
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional detailed agenda or notes for the meeting."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the booking was originally created.",
+          "format": "date-time"
+        },
+        "cancelledAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the booking was cancelled, if applicable. If present, the booking is considered cancelled. (Relationship: 1:0/1 with Booking)",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "meetingRoomId",
+        "userId",
+        "startTime",
+        "endTime",
+        "title",
+        "createdAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/userProfiles/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores individual user profile information. The document ID (`{userId}`) matches the Firebase Authentication UID. Includes the 'isAdmin' flag for role-based access control.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique Firebase Authentication UID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/meetingRooms/{roomId}",
+        "definition": {
+          "entityName": "MeetingRoom",
+          "schema": {
+            "$ref": "#/backend/entities/MeetingRoom"
+          },
+          "description": "Contains definitions for all meeting rooms. Accessible to all authenticated users for viewing, but only administrators can create, update, or delete rooms.",
+          "params": [
+            {
+              "name": "roomId",
+              "description": "The unique identifier for the meeting room."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/bookings/{bookingId}",
+        "definition": {
+          "entityName": "Booking",
+          "schema": {
+            "$ref": "#/backend/entities/Booking"
+          },
+          "description": "Stores all meeting room bookings. Documents include 'userId' for direct ownership checks by users. Denormalized 'userId' enables authorization independence for individual user access and supports QAPs for listing personal bookings. Admins can view and manage all bookings, while regular users can only view and cancel their own.",
+          "params": [
+            {
+              "name": "bookingId",
+              "description": "The unique identifier for the booking."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The proposed Firestore data structure prioritizes security, scalability, and debuggability by adhering strictly to the mandated design principles. It establishes three top-level collections: 'userProfiles', 'meetingRooms', and 'bookings'.\n\n1.  **Authorization Independence:** This structure is designed to completely avoid the need for `get()` calls in security rules for authorization checks. \n    *   For `UserProfile` documents at `/userProfiles/{userId}`, access is inherently authorized by matching the document ID `{userId}` with `request.auth.uid`. The `isAdmin` flag, crucial for role-based access, is stored directly within the user's own profile document. Accessing this flag does not require `get()` on a parent, but a direct lookup of `resource.data.isAdmin` if the current user is the owner, or `get(/userProfiles/$(request.auth.uid))` for checking the current user's own admin status when accessing other resources. This approach maintains independence as the admin status is part of the requesting user's identity, not tied hierarchically to the resource being accessed.\n    *   For `MeetingRoom` documents at `/meetingRooms/{roomId}`, read access is public to all authenticated users. Write access is restricted to administrators. The check for administrative privilege will be done by consulting the `isAdmin` flag in the current user's own `userProfiles` document. This is an identity-based check, not a hierarchical data dependency.\n    *   For `Booking` documents at `/bookings/{bookingId}`, the critical `userId` field is denormalized directly into each booking document. This allows security rules to check `request.auth.uid == resource.data.userId` for ownership without needing to perform a `get()` operation on a parent user document or meeting room document. This is a key enabler for atomic operations and simplifies rule logic considerably.\n\n2.  **QAPs (Rules are not Filters):** The structure facilitates secure `list` operations without relying on security rules as filters.\n    *   For `MeetingRoom`s, all authenticated users can list and read all rooms, as per requirements. Rules simply allow read access to the collection for authenticated users.\n    *   For `UserProfile`s, individual profile reads are path-based (`/userProfiles/{request.auth.uid}`). Listing all profiles would typically be restricted to admins, or not allowed at all, which aligns with QAPs.\n    *   For `Booking`s, regular users can only view their own bookings. This is achieved by clients performing a query like `db.collection('bookings').where('userId', '==', request.auth.uid)`. The Firestore security rules can then securely validate that any `read` operation on `/bookings/{bookingId}` is either by the owner (`request.auth.uid == resource.data.userId`) or by an administrator. Administrators, on the other hand, can view all bookings by simply querying the `/bookings` collection without a `userId` filter, with the security rules granting them blanket read access based on their `isAdmin` status. This cleanly separates access patterns and adheres to QAPs."
+  }
+}

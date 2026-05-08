@@ -1,0 +1,22 @@
+{
+  "placeholderImages": [
+    {
+      "id": "hero-image",
+      "description": "A spacious, modern meeting room with a large wooden table, ergonomic chairs, and a stunning city view through floor-to-ceiling windows.",
+      "imageUrl": "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=1080",
+      "imageHint": "meeting room"
+    },
+    {
+      "id": "meeting-room-1",
+      "description": "Collaborative workspace with whiteboards and bright lighting.",
+      "imageUrl": "https://images.unsplash.com/photo-1606836591695-4d58a73eba1e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxtZWV0aW5nJTIwcm9vbXxlbnwwfHx8fDE3NzIxNzM0ODl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "meeting room"
+    },
+    {
+      "id": "meeting-room-2",
+      "description": "Private executive suite with premium furniture.",
+      "imageUrl": "https://images.unsplash.com/photo-1631247022917-53f9af27d719?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxleGVjdXRpdmUlMjBvZmZpY2V8ZW58MHx8fHwxNzcyMTczNDg5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "executive office"
+    }
+  ]
+}

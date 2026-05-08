@@ -1,0 +1,99 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * CORE PHILOSOPHY
+     * This ruleset implements a Hybrid Role-Based and Ownership-Based Access Control model for the MERBOOK system. 
+     * It distinguishes between standard users, who manage their own profiles and bookings, and 
+     * administrators, who manage physical meeting room assets and oversee all system activity.
+     *
+     * DATA STRUCTURE
+     * The database uses a flat, top-level architecture for primary entities:
+     * - /userProfiles/{userId}: User identity and permission flags.
+     * - /meetingRooms/{roomId}: Definitions of physical booking spaces.
+     * - /bookings/{bookingId}: Transactional records of room reservations.
+     *
+     * KEY SECURITY DECISIONS
+     * 1. Identity-First: The 'isAdmin' flag in the 'userProfiles' collection serves as the source of truth for elevated privileges.
+     * 2. Listing Restrictions: User listing is restricted to admins to protect privacy. Meeting rooms are globally listable by authenticated users.
+     * 3. Booking Privacy: Regular users can only list and access their own bookings, enforced via denormalized 'userId' fields.
+     * 4. Prototyping Flexibility: Rules focus on authorization and relational consistency (e.g., path vs. internal ID) rather than strict schema validation.
+     *
+     * DENORMALIZATION FOR AUTHORIZATION
+     * - The 'userId' is denormalized onto every 'Booking' document. This allows the 'isOwner()' check to be performed 
+     *   without an expensive 'get()' call to a separate collection, ensuring high performance and lower costs.
+     * - The 'isAdmin' flag is stored on the 'UserProfile'. While this requires a 'get()' for admin actions on other 
+     *   collections, it centralizes authority and prevents users from escalating their own privileges.
+     */
+
+    // --- Global Helper Functions ---
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Rules for user profile management. Users can manage their own profiles; Admins can view and manage all.
+     * @path /userProfiles/{userId}
+     * @allow (get) If the user is the owner of the profile or an admin.
+     * @deny (create) If the user attempts to create a profile for a different UID or sets 'isAdmin' to true.
+     * @principle Restricts profile access to owners and enforces identity integrity between Auth and Firestore.
+     */
+    match /userProfiles/{userId} {
+      // Reads
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+
+      // Writes
+      allow create: if isOwner(userId) && request.resource.data.id == userId && request.resource.data.isAdmin == false;
+      allow update: if (isOwner(userId) && request.resource.data.isAdmin == resource.data.isAdmin) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Rules for physical meeting rooms. All users can view rooms, but only Admins can modify them.
+     * @path /meetingRooms/{roomId}
+     * @allow (list) Any authenticated user viewing available rooms.
+     * @deny (update) Any non-admin user attempting to change room capacity or status.
+     * @principle Public read-only access for authenticated users with privileged write access for admins.
+     */
+    match /meetingRooms/{roomId} {
+      // Reads
+      allow get, list: if isSignedIn();
+
+      // Writes
+      allow create: if isAdmin();
+      allow update: if isAdmin() && resource != null;
+      allow delete: if isAdmin() && resource != null;
+    }
+
+    /**
+     * @description Rules for room bookings. Users manage their own; Admins have full oversight.
+     * @path /bookings/{bookingId}
+     * @allow (create) An authenticated user creating a booking for themselves.
+     * @deny (list) A user attempting to list bookings belonging to other users.
+     * @principle Uses denormalized ownership fields to authorize access without secondary document lookups.
+     */
+    match /bookings/{bookingId} {
+      // Reads
+      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100 && resource.data.userId == request.auth.uid);
+
+      // Writes
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if (isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid)) && resource != null && request.resource.data.userId == resource.data.userId;
+      allow delete: if (isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid)) && resource != null;
+    }
+  }
+}
